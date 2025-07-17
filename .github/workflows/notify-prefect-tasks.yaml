@@ -17,7 +17,7 @@ jobs:
         run: |
           echo "🔄 azure_utils updated - triggering prefect-tasks rebuild..."
           
-          curl -X POST https://api.github.com/repos/etwilson83/prefect-tasks/dispatches \
+          response=$(curl -s -w "%{http_code}" -X POST https://api.github.com/repos/etwilson83/prefect-tasks/dispatches \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
             -d '{
@@ -27,6 +27,18 @@ jobs:
                 "azure_utils_ref": "${{ github.ref }}",
                 "triggered_by": "azure_utils_push"
               }
-            }'
+            }')
           
-          echo "✅ Repository dispatch sent to prefect-tasks" 
+          # Extract status code (last 3 characters)
+          status_code="${response: -3}"
+          
+          echo "📡 Response status code: $status_code"
+          
+          if [ "$status_code" = "204" ]; then
+            echo "✅ Repository dispatch sent to prefect-tasks successfully"
+          else
+            echo "❌ Failed to trigger prefect-tasks rebuild"
+            echo "Status code: $status_code"
+            echo "Response: $response"
+            exit 1
+          fi 
