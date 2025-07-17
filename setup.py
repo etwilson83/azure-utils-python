@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="azure-utils",
-    version="0.1.0",
+    version="0.1.1",
     description="Azure utilities for AlphaPath biomedical image processing pipeline",
     author="AlphaPath Team",
     packages=find_packages(),

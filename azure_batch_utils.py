@@ -290,6 +290,7 @@ async def _monitor_batch_job(
                 # Convert task state to string for comparison
                 task_state_str = str(task.state).lower()
                 logger.info(f"📊 Task state: {task.state} ({task_state_str})")
+                logger.info(f"🔧 DEBUG: Using azure_utils with TaskState.completed fix v1.1")
                 
                 # Debug: Log the exact comparison
                 logger.info(f"🔍 Checking: '{task_state_str}' == 'completed' or '{task_state_str}' == 'taskstate.completed'")
