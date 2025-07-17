@@ -25,7 +25,8 @@ from azure.batch.models import (
     OutputFileDestination,
     OutputFileBlobContainerDestination,
     OutputFileUploadOptions,
-    OutputFileUploadCondition
+    OutputFileUploadCondition,
+    TaskState
 )
 from azure.identity import DefaultAzureCredential
 from azure.core.exceptions import ResourceNotFoundError
@@ -287,17 +288,12 @@ async def _monitor_batch_job(
                 # Get task status
                 task = batch_client.task.get(job_id, task_id)
                 
-                # Convert task state to string for comparison
-                task_state_str = str(task.state).lower()
+                # Get task state and convert to string for logging
+                task_state_str = str(task.state)
                 logger.info(f"📊 Task state: {task.state} ({task_state_str})")
-                logger.info(f"🔧 DEBUG: Using azure_utils with TaskState.completed fix v1.1")
                 
-                # Debug: Log the exact comparison
-                logger.info(f"🔍 Checking: '{task_state_str}' == 'completed' or '{task_state_str}' == 'taskstate.completed'")
-                completed_match = task_state_str == "completed" or task_state_str == "taskstate.completed"
-                logger.info(f"🔍 Completed match result: {completed_match}")
-                
-                if completed_match:
+                # Compare against actual TaskState enum values for reliability
+                if task.state == TaskState.completed:
                     # Task completed successfully
                     execution_info = task.execution_info
                     logger.info(f"✅ Task completed with exit code: {execution_info.exit_code}")
@@ -314,7 +310,7 @@ async def _monitor_batch_job(
                         "stderr": stderr
                     }
                 
-                elif task_state_str == "failed" or task_state_str == "taskstate.failed":
+                elif task.state == TaskState.failed:
                     # Task failed
                     execution_info = task.execution_info
                     logger.error(f"❌ Task failed with exit code: {execution_info.exit_code}")
@@ -323,7 +319,7 @@ async def _monitor_batch_job(
                     
                     raise RuntimeError(f"Batch task failed with exit code {execution_info.exit_code}")
                 
-                elif task_state_str in ["active", "preparing", "running", "taskstate.active", "taskstate.preparing", "taskstate.running"]:
+                elif task.state in [TaskState.active, TaskState.preparing, TaskState.running]:
                     # Task still in progress - provide more details
                     logger.info(f"⏳ Task still in progress, waiting 10 seconds...")
                     
