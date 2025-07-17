@@ -291,7 +291,12 @@ async def _monitor_batch_job(
                 task_state_str = str(task.state).lower()
                 logger.info(f"📊 Task state: {task.state} ({task_state_str})")
                 
-                if task_state_str == "completed" or task_state_str == "taskstate.completed":
+                # Debug: Log the exact comparison
+                logger.info(f"🔍 Checking: '{task_state_str}' == 'completed' or '{task_state_str}' == 'taskstate.completed'")
+                completed_match = task_state_str == "completed" or task_state_str == "taskstate.completed"
+                logger.info(f"🔍 Completed match result: {completed_match}")
+                
+                if completed_match:
                     # Task completed successfully
                     execution_info = task.execution_info
                     logger.info(f"✅ Task completed with exit code: {execution_info.exit_code}")
