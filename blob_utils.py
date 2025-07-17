@@ -3,7 +3,7 @@ Azure Blob Storage utilities for AlphaPath pipeline
 """
 import os
 from typing import List, Dict, Optional, Set
-from prefect import task, get_run_logger
+import logging
 from azure.storage.blob import BlobServiceClient
 from azure.identity import DefaultAzureCredential
 from pathlib import Path
@@ -20,7 +20,6 @@ def get_blob_service_client() -> BlobServiceClient:
     credential = DefaultAzureCredential()
     return BlobServiceClient(account_url=account_url, credential=credential)
 
-@task(name="List Input Images")
 async def list_input_images() -> List[Dict[str, str]]:
     """
     List all .svs files in the input blob container.
@@ -28,7 +27,7 @@ async def list_input_images() -> List[Dict[str, str]]:
     Returns:
         List of dicts with image metadata: [{"name": "image.svs", "path": "input/image.svs", "size": 1234567}]
     """
-    logger = get_run_logger()
+    logger = logging.getLogger(__name__)
     logger.info(f"🔍 Scanning {INPUT_CONTAINER} container for .svs files...")
     
     blob_client = get_blob_service_client()
@@ -60,7 +59,7 @@ async def list_input_images() -> List[Dict[str, str]]:
     
     return images
 
-@task(name="Check Processing Status")  
+  
 async def check_processing_status(image_list: List[Dict[str, str]]) -> Dict[str, List[Dict[str, str]]]:
     """
     Check which images have been processed by looking for outputs in the output container.
@@ -71,7 +70,7 @@ async def check_processing_status(image_list: List[Dict[str, str]]) -> Dict[str,
     Returns:
         Dict with "pending" and "processed" lists of image metadata
     """
-    logger = get_run_logger()
+    logger = logging.getLogger(__name__)
     logger.info(f"🔍 Checking processing status for {len(image_list)} images...")
     
     blob_client = get_blob_service_client()
@@ -123,7 +122,6 @@ async def check_processing_status(image_list: List[Dict[str, str]]) -> Dict[str,
     
     return result
 
-@task(name="Download Image from Blob")
 async def download_image_from_blob(image_name: str, local_path: str) -> str:
     """
     Download an image from the input blob container to local storage.
@@ -135,7 +133,7 @@ async def download_image_from_blob(image_name: str, local_path: str) -> str:
     Returns:
         str: Local file path of the downloaded image
     """
-    logger = get_run_logger()
+    logger = logging.getLogger(__name__)
     logger.info(f"⬇️ Downloading {image_name} to {local_path}")
     
     blob_client = get_blob_service_client()
@@ -163,7 +161,6 @@ async def download_image_from_blob(image_name: str, local_path: str) -> str:
         logger.error(f"❌ Failed to download {image_name}: {e}")
         raise
 
-@task(name="Upload Results to Blob")
 async def upload_results_to_blob(local_output_dir: str, image_name: str) -> Dict[str, str]:
     """
     Upload processing results from local directory to output blob container.
@@ -175,7 +172,7 @@ async def upload_results_to_blob(local_output_dir: str, image_name: str) -> Dict
     Returns:
         Dict with upload summary: {"uploaded_files": count, "blob_prefix": "output/image_name/"}
     """
-    logger = get_run_logger()
+    logger = logging.getLogger(__name__)
     image_base_name = Path(image_name).stem  # Remove .svs extension
     blob_prefix = f"{image_base_name}/"
     
@@ -217,7 +214,7 @@ async def upload_results_to_blob(local_output_dir: str, image_name: str) -> Dict
         logger.error(f"❌ Failed to upload results: {e}")
         raise
 
-@task(name="Archive Processed Image")  
+  
 async def archive_processed_image(image_name: str) -> Dict[str, str]:
     """
     Move a processed image from input to archive container.
@@ -228,7 +225,7 @@ async def archive_processed_image(image_name: str) -> Dict[str, str]:
     Returns:
         Dict with archive status
     """
-    logger = get_run_logger()
+    logger = logging.getLogger(__name__)
     logger.info(f"📦 Archiving processed image: {image_name}")
     
     blob_client = get_blob_service_client()

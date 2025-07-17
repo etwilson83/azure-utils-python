@@ -12,7 +12,7 @@ import uuid
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
 
-from prefect import task, get_run_logger
+import logging
 from azure.batch import BatchServiceClient
 from azure.batch.models import (
     JobAddParameter,
@@ -31,13 +31,6 @@ from azure.identity import DefaultAzureCredential
 from azure.core.exceptions import ResourceNotFoundError
 
 
-@task(
-    name="Submit Azure Batch Job",
-    description="Submit a containerized job to Azure Batch and monitor completion",
-    retries=2,
-    retry_delay_seconds=60,
-    timeout_seconds=1800  # COST PROTECTION: 30 minute maximum task timeout
-)
 async def submit_batch_job(
     job_name: str,
     container_image: str,
@@ -68,7 +61,7 @@ async def submit_batch_job(
     Returns:
         Dict containing job results, status, and metadata
     """
-    logger = get_run_logger()
+    logger = logging.getLogger(__name__)
     
     # COST PROTECTION: Enforce timeout limits
     timeout_minutes = min(timeout_minutes, max_timeout_minutes)
@@ -163,7 +156,7 @@ async def _get_batch_client() -> BatchServiceClient:
 
 async def _create_batch_job(batch_client: BatchServiceClient, job_id: str, pool_name: str, timeout_minutes: int = 30) -> None:
     """Create a new batch job with timeout constraints"""
-    logger = get_run_logger()
+    logger = logging.getLogger(__name__)
     
     try:
         pool_info = PoolInformation(pool_id=pool_name)
@@ -199,7 +192,7 @@ async def _create_batch_task(
     timeout_minutes: int = 30
 ) -> None:
     """Create a batch task with container settings"""
-    logger = get_run_logger()
+    logger = logging.getLogger(__name__)
     
     try:
         # Prepare environment variables
@@ -281,7 +274,7 @@ async def _monitor_batch_job(
     timeout_minutes: int
 ) -> Dict[str, Any]:
     """Monitor batch job completion and return results"""
-    logger = get_run_logger()
+    logger = logging.getLogger(__name__)
     
     start_time = datetime.now()
     timeout = timedelta(minutes=timeout_minutes)
@@ -383,13 +376,9 @@ async def _get_task_output(batch_client: BatchServiceClient, job_id: str, task_i
         return f"Error getting stdout: {e}", f"Error getting stderr: {e}"
 
 
-@task(
-    name="Cleanup Batch Job",
-    description="Clean up completed batch job and associated resources"
-)
 async def cleanup_batch_job(job_id: str) -> bool:
     """Clean up a completed batch job"""
-    logger = get_run_logger()
+    logger = logging.getLogger(__name__)
     
     try:
         batch_client = await _get_batch_client()

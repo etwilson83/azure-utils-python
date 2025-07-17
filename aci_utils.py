@@ -1,7 +1,7 @@
 """
 Azure Container Instance utilities for Prefect orchestration
 """
-from prefect import task, get_run_logger
+import logging
 import time
 import asyncio
 import os
@@ -50,7 +50,6 @@ def _lazy_import_azure():
             "Please install them with: pip install azure-mgmt-containerinstance azure-identity azure-mgmt-resource"
         )
 
-@task
 async def run_aci_container(
     image: str,
     container_name: str,
@@ -75,7 +74,7 @@ async def run_aci_container(
     Returns:
         bool: True if container completed successfully, False otherwise
     """
-    logger = get_run_logger()
+    logger = logging.getLogger(__name__)
     
     # Lazy import Azure modules
     azure_modules = _lazy_import_azure()
@@ -179,7 +178,7 @@ async def run_aci_container(
 
 async def _monitor_container_completion(aci_client, container_name: str, timeout_minutes: int) -> bool:
     """Monitor container until completion or timeout"""
-    logger = get_run_logger()
+    logger = logging.getLogger(__name__)
     
     start_time = time.time()
     timeout_seconds = timeout_minutes * 60

@@ -12,11 +12,7 @@ setup(
         "azure-identity>=1.12.0",
         "azure-mgmt-containerinstance>=10.0.0",
         "azure-mgmt-resource>=21.0.0",
-        "prefect>=3.0.0",
-        "asyncio",
-        "datetime",
-        "typing",
-        "enum34; python_version<'3.4'",
+        # Note: asyncio, datetime, typing are built-in Python modules
     ],
     python_requires=">=3.8",
     classifiers=[
