@@ -310,14 +310,17 @@ async def _monitor_batch_job(
                         "stderr": stderr
                     }
                 
-                elif task.state == TaskState.failed:
-                    # Task failed
+                elif task.state not in [TaskState.active, TaskState.preparing, TaskState.running, TaskState.completed]:
+                    # Task is in an unknown/error state
                     execution_info = task.execution_info
-                    logger.error(f"❌ Task failed with exit code: {execution_info.exit_code}")
+                    logger.error(f"❌ Task in unknown state: {task.state}")
                     
-                    stdout, stderr = await _get_task_output(batch_client, job_id, task_id)
-                    
-                    raise RuntimeError(f"Batch task failed with exit code {execution_info.exit_code}")
+                    if execution_info and execution_info.exit_code is not None:
+                        logger.error(f"❌ Task failed with exit code: {execution_info.exit_code}")
+                        stdout, stderr = await _get_task_output(batch_client, job_id, task_id)
+                        raise RuntimeError(f"Batch task failed with exit code {execution_info.exit_code}")
+                    else:
+                        raise RuntimeError(f"Batch task in unknown state: {task.state}")
                 
                 elif task.state in [TaskState.active, TaskState.preparing, TaskState.running]:
                     # Task still in progress - provide more details
