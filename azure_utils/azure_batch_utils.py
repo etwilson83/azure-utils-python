@@ -65,6 +65,9 @@ async def submit_batch_job(
     """
     logger = logging.getLogger(__name__)
     
+    logger.info(f"🔧 AZURE_UTILS VERSION: azure_batch_utils.py v1.2 - Fixed TaskState monitoring")
+    logger.info(f"🔧 CALLED WITH: job_name={job_name}, pool_name={pool_name}, timeout={timeout_minutes}")
+    
     # COST PROTECTION: Enforce timeout limits
     timeout_minutes = min(timeout_minutes, max_timeout_minutes)
     if timeout_minutes > max_timeout_minutes:

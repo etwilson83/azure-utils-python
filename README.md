@@ -79,4 +79,4 @@ This package requires Python 3.8+ and the following dependencies:
 - azure-storage-blob>=12.0.0
 - azure-identity>=1.12.0
 - azure-mgmt-containerinstance>=10.0.0
-- prefect>=3.0.0
+- prefect>=3.0.0# Force rebuild Thu Jul 17 13:32:21 EDT 2025
