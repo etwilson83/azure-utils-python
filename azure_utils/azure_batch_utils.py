@@ -42,7 +42,8 @@ async def submit_batch_job(
     input_files: Optional[List[Dict[str, str]]] = None,
     output_files: Optional[List[Dict[str, str]]] = None,
     timeout_minutes: int = 15,  # COST PROTECTION: Reduced default timeout to 15 minutes
-    max_timeout_minutes: int = 30  # COST PROTECTION: Hard limit of 30 minutes
+    max_timeout_minutes: int = 30,  # COST PROTECTION: Hard limit of 30 minutes
+    debug_mode: bool = False  # DEBUG: Disable cleanup for debugging
 ) -> Dict[str, Any]:
     """
     Submit a containerized job to Azure Batch and monitor its completion.
@@ -59,6 +60,7 @@ async def submit_batch_job(
         output_files: List of output files to upload (format: [{"file_path": "/tmp/output.json", "blob_name": "output.json"}])
         timeout_minutes: Maximum time to wait for job completion (max 30 minutes)
         max_timeout_minutes: Hard timeout limit (30 minutes maximum)
+        debug_mode: If True, skip automatic job cleanup for debugging (default: False)
         
     Returns:
         Dict containing job results, status, and metadata
@@ -105,10 +107,12 @@ async def submit_batch_job(
         # Monitor job completion
         result = await _monitor_batch_job(batch_client, job_id, task_id, timeout_minutes)
         
-        # COST PROTECTION: Always cleanup job after completion
-        await cleanup_batch_job(job_id)
-        
-        logger.info(f"✅ Batch job {job_id} completed successfully and cleaned up")
+        # COST PROTECTION: Always cleanup job after completion (unless debug mode)
+        if not debug_mode:
+            await cleanup_batch_job(job_id)
+            logger.info(f"✅ Batch job {job_id} completed successfully and cleaned up")
+        else:
+            logger.info(f"🔍 DEBUG MODE: Batch job {job_id} completed successfully (NOT cleaned up for debugging)")
         
         return {
             "status": "completed",
@@ -116,7 +120,10 @@ async def submit_batch_job(
             "task_id": task_id,
             "container_image": container_image,
             "timeout_minutes": timeout_minutes,
-            "result": result
+            "result": result,
+            "stdout": result.get("stdout", "No stdout captured"),
+            "stderr": result.get("stderr", "No stderr captured"),
+            "debug_mode": debug_mode
         }
         
     except Exception as e:
@@ -298,16 +305,23 @@ async def _monitor_batch_job(
                 
                 # Compare against actual TaskState enum values for reliability
                 if task.state == TaskState.completed:
-                    # Task completed successfully
+                    # Task completed, check exit code for success/failure
                     execution_info = task.execution_info
-                    logger.info(f"✅ Task completed with exit code: {execution_info.exit_code}")
+                    exit_code = execution_info.exit_code if execution_info else None
                     
                     # Get task output (stdout/stderr)
                     stdout, stderr = await _get_task_output(batch_client, job_id, task_id)
                     
+                    if exit_code != 0:
+                        logger.error(f"❌ Task failed with exit code: {exit_code}")
+                        logger.error(f"❌ Task stderr: {stderr}")
+                        raise RuntimeError(f"Batch task failed with exit code {exit_code}. stderr: {stderr}")
+                    
+                    logger.info(f"✅ Task completed successfully with exit code: {exit_code}")
+                    
                     return {
                         "state": task_state_str,
-                        "exit_code": execution_info.exit_code,
+                        "exit_code": exit_code,
                         "start_time": execution_info.start_time.isoformat() if execution_info.start_time else None,
                         "end_time": execution_info.end_time.isoformat() if execution_info.end_time else None,
                         "stdout": stdout,
