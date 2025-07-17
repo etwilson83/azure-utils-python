@@ -1,0 +1,32 @@
+name: Notify Prefect Tasks
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+
+jobs:
+  notify-prefect-tasks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger prefect-tasks rebuild
+        run: |
+          echo "🔄 azure_utils updated - triggering prefect-tasks rebuild..."
+          
+          curl -X POST https://api.github.com/repos/etwilson83/prefect-tasks/dispatches \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -d '{
+              "event_type": "azure_utils_updated",
+              "client_payload": {
+                "azure_utils_commit": "${{ github.sha }}",
+                "azure_utils_ref": "${{ github.ref }}",
+                "triggered_by": "azure_utils_push"
+              }
+            }'
+          
+          echo "✅ Repository dispatch sent to prefect-tasks" 
