@@ -17,7 +17,7 @@ jobs:
         run: |
           echo "🔄 azure_utils updated - triggering prefect-tasks rebuild..."
           
-          response=$(curl -s -w "%{http_code}" -X POST https://api.github.com/repos/etwilson83/prefect-tasks/dispatches \
+          response=$(curl -s -w "%{http_code}" -X POST https://api.github.com/repos/etwilson83/alphapath-jobs/dispatches \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
             -d '{
